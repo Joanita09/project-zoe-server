@@ -1,20 +1,27 @@
 import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
-import { JwtService } from '@nestjs/jwt';
 import { cleanUpUser, createUserDto } from './auth.helpers';
 import { UserDto } from './dto/user.dto';
-import { LoginResponseDto } from './dto/login-response.dto';
 import { IEmail, sendEmail } from 'src/utils/mailerTest';
 import { ForgotPasswordResponseDto } from './dto/forgot-password-response.dto';
 import { ResetPasswordResponseDto } from './dto/reset-password-response.dto';
 import { UpdateUserDto } from '../users/dto/update-user.dto';
+import { JwtHelperService } from './jwt-helpers.service';
 import { UserListDto } from 'src/users/dto/user-list.dto';
+import Roles from 'src/users/entities/roles.entity';
+import { In, Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { JwtService } from '@nestjs/jwt';
+import { LoginResponseDto } from './dto/login-response.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly usersService: UsersService,
+    private readonly jwtHelperService: JwtHelperService,
     private readonly jwtService: JwtService,
+    @InjectRepository(Roles)
+    private readonly rolesRepository: Repository<Roles>,
   ) {}
 
   async validateUser(username: string, pass: string): Promise<UserDto | null> {
@@ -23,16 +30,20 @@ export class AuthService {
       Logger.warn('invalid username: ', username);
       return null;
     }
-
+    console.log('Check if user is active', user.isActive);
     if (!user.isActive) {
       Logger.warn('User Inactive', username);
       return null;
     }
-
+    const roles = [];
+    user.userRoles.forEach((it) => roles.push(...it.roles.permissions));
+    console.log('Check if user is active', user.isActive);
     const valid = await user.validatePassword(pass);
     if (valid) {
       cleanUpUser(user);
-      return createUserDto(user);
+      const dto = createUserDto(user);
+      dto.permissions = roles;
+      return dto;
     } else {
       Logger.warn('invalid password: ', username);
       return null;
@@ -40,7 +51,9 @@ export class AuthService {
   }
 
   async generateToken(user: UserDto | UserListDto): Promise<LoginResponseDto> {
-    const payload = { ...user, sub: user.id };
+    const userPermissions = await this.getPermissions(user.roles);
+    user.permissions = userPermissions;
+    const payload = { ...user, sub: user.id, permissions: userPermissions };
     const token = await this.jwtService.signAsync(payload);
     return { token, user };
   }
@@ -57,7 +70,7 @@ export class AuthService {
     }
 
     const user = await this.usersService.findOne(userExists.id);
-    const token = (await this.generateToken(user)).token;
+    const token = (await this.jwtHelperService.generateToken(user)).token;
     const resetLink = `${process.env.APP_URL}/#/reset-password/${token}`;
 
     const mailerData: IEmail = {
@@ -66,7 +79,7 @@ export class AuthService {
       html: `
             <h3>Hello ${user.fullName}</h3></br>
             <h4>Here is a link to reset your Password!<h4></br>
-            <a href=${resetLink}>Reset Password</a>
+            <a href="${resetLink}">Reset Password</a>
             <p>This link should expire in 10 minutes</p>
         `,
     };
@@ -78,7 +91,7 @@ export class AuthService {
     token: string,
     newPassword: string,
   ): Promise<ResetPasswordResponseDto> {
-    const decodedToken = await this.decodeToken(token);
+    const decodedToken = await this.jwtHelperService.decodeToken(token);
     if (!decodedToken) {
       throw new HttpException('Incorrect Token, User not retrieved', 404);
     }
@@ -109,5 +122,16 @@ export class AuthService {
     } else {
       Logger.error('Email not sent');
     }
+  }
+
+  async getPermissions(roles: string[]) {
+    const permissions: string[] = [];
+
+    const getPermissions = await this.rolesRepository.find({
+      select: ['permissions'],
+      where: { role: In(roles), isActive: true },
+    });
+    getPermissions.map((it: any) => permissions.push(...it.permissions));
+    return [...new Set(permissions)];
   }
 }

@@ -10,6 +10,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import eventCategories from './data/eventCategories';
 import GroupCategoryReport from 'src/groups/entities/groupCategoryReport.entity';
 import seedGroupReportCategories from './data/groupCategoryReports';
+import Roles from 'src/users/entities/roles.entity';
+import { roleAdmin } from 'src/auth/constants';
 
 @Injectable()
 export class SeedService {
@@ -21,12 +23,14 @@ export class SeedService {
     private readonly eventCategoryRepository: Repository<EventCategory>,
     @InjectRepository(GroupCategoryReport)
     private readonly gCatReportRepository: Repository<GroupCategoryReport>,
+    @InjectRepository(Roles)
+    private readonly rolesRepository: Repository<Roles>,
   ) {}
 
   async createUsers() {
     Logger.log(`Seeding ${seedUsers.length} users`);
     for (const user of seedUsers) {
-      const exists = await this.usersService.exits(user.email);
+      const exists = await this.usersService.exists(user.email);
       if (exists) {
         Logger.log(`User: ${user.email} already exists`);
       } else {
@@ -81,12 +85,30 @@ export class SeedService {
       Logger.debug(`${count} GroupReportCategories already exist`);
     } else {
       for (const rec of seedGroupReportCategories) {
-        
         await this.gCatReportRepository.save(rec);
       }
       Logger.debug(
         `${seedGroupReportCategories.length} GroupReportCategories created`,
       );
+    }
+  }
+
+  async createRoleAdmin() {
+    const checkadminRole = await this.rolesRepository.find({
+      where: { role: roleAdmin.role },
+    });
+
+    if (checkadminRole.length < 1) {
+      Logger.debug(`Creating the ${roleAdmin.role} Role`);
+      const toSave = new Roles();
+      toSave.role = roleAdmin.role;
+      toSave.description = roleAdmin.description;
+      toSave.permissions = roleAdmin.permissions;
+      toSave.isActive = roleAdmin.isActive;
+
+      await this.rolesRepository.save(toSave);
+    } else {
+      Logger.debug(`${roleAdmin.role} Role already exist`);
     }
   }
 }

@@ -1,7 +1,17 @@
-import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn, Unique } from "typeorm";
-import * as bcrypt from "bcrypt";
-import Contact from "../crm/entities/contact.entity";
-import { hasValue } from "../utils/validation";
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  OneToMany,
+  OneToOne,
+  PrimaryColumn,
+  PrimaryGeneratedColumn,
+  Unique,
+} from 'typeorm';
+import * as bcrypt from 'bcrypt';
+import Contact from '../../crm/entities/contact.entity';
+import { hasValue } from '../../utils/validation';
+import UserRoles from './userRoles.entity';
 
 // authentication will take approximately 13 seconds
 // https://pthree.org/wp-content/uploads/2016/06/bcrypt.png
@@ -26,11 +36,11 @@ export class User {
   @Column({ nullable: false })
   contactId: number;
 
-  @Column('simple-array', { nullable: false })
-  roles: string[];
-
   @Column()
   isActive: boolean;
+
+  @OneToMany((type) => UserRoles, (it) => it.user)
+  userRoles: UserRoles[];
 
   hashPassword() {
     if (hasValue(this.password)) {
