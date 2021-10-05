@@ -1,6 +1,6 @@
 import { URLCategory } from '../enums/URLCategory';
 
-export class CreateHelpDto {
+export default class HelpDto {
     id: number;
 
     category: URLCategory;

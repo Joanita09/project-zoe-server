@@ -1,8 +1,14 @@
-import { Controller, Get, Post, Body, Put, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, Param, Delete, UseGuards,UseInterceptors,} from '@nestjs/common';
 import { HelpService } from './help.service';
 import { CreateHelpDto } from './dto/create-help.dto';
 import { UpdateHelpDto } from './dto/update-help.dto';
+import { ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SentryInterceptor } from '../../src/utils/sentry.interceptor';
 
+@UseInterceptors(SentryInterceptor)
+@UseGuards(JwtAuthGuard)
+@ApiTags('Help')
 @Controller('help')
 export class HelpController {
   constructor(private readonly helpService: HelpService) {}
