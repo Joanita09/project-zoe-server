@@ -7,7 +7,7 @@ export class CreateHelpDto {
 
     title: string;
 
-    url?: URL;
+    url?: string;
 
     createdOn: Date;
 

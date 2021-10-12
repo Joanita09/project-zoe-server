@@ -7,7 +7,7 @@ export default class HelpDto {
 
     title: string;
 
-    url?: URL;
+    url?: string;
 
     createdOn: Date;
 

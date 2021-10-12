@@ -1,10 +1,14 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreateHelpDto } from './dto/create-help.dto';
 import { UpdateHelpDto } from './dto/update-help.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import {Repository} from 'typeorm';
+import { Repository } from 'typeorm';
 import Help from './entities/help.entity';
 import HelpDto from './dto/help.dto';
+import SearchDto from '../shared/dto/search.dto';
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
+
+
 
 @Injectable()
 export class HelpService {
@@ -13,42 +17,31 @@ export class HelpService {
     private readonly repository: Repository<Help>,
   ) {}
 
-  toDetailView(file: Help): HelpDto {
-    const { title, category, ...rest } = file;
-    return {
-      ...rest,
-    } as any;
+  async create(data: CreateHelpDto): Promise<HelpDto> {
+    return this.repository.save(data);
   }
 
-  async create(createHelpDto: CreateHelpDto): Promise<HelpDto> {
-    Logger.log(`Create.File starting ${createHelpDto.title}`);
+  async findAll(req: SearchDto): Promise<HelpDto[]> {
+    const data = await this.repository.find({
+      select: ['title', 'category', 'url']
+    })
+    return data;
+  }
 
-    const result = await this.repository
+  findOne(id: number){
+    return `This action returns a #${id} help`;
+  }
+
+  async update(data: UpdateHelpDto) {
+    const file = this.findOne(data.id);
+
+    const resp = await this.repository
       .createQueryBuilder()
-      .insert()
-      .values({
-        id: 0,
-        ...createHelpDto,
-      })
+      .update()
+      .where('id = :id', { id: data.id })
       .execute();
-      const insertedId = result.identifiers[0]['id'];
-    Logger.log(`Create.Help success name: ${createHelpDto.title} id:${insertedId}`);
 
-    return this.findOne(insertedId, true);
-
-  }
-
-  findAll() {
-    return `This action returns all help`;
-  }
-
-  async findOne(id: number, full = true): Promise<HelpDto> {
-    const data = await this.repository.findOne(id)
-    return this.toDetailView(data);
-  }
-
-  update(id: number, updateHelpDto: UpdateHelpDto) {
-    return `This action updates a #${id} help`;
+    return this.findOne(data.id);
   }
 
   remove(id: number) {

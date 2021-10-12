@@ -9,14 +9,14 @@ import { URLCategory } from '../enums/URLCategory';
 
 @Entity({ name: 'help' })
 export default class Help {
-    @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ length: 100 })
+  @Column({ length: 300 })
   title: string;
 
   @Column({ nullable: false})
-  url?: URL;
+  url?: string;
 
   @Column({
     type: 'enum',

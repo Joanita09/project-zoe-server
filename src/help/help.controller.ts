@@ -1,26 +1,28 @@
-import { Controller, Get, Post, Body, Put, Param, Delete, UseGuards,UseInterceptors,} from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, Param, Delete, UseGuards,UseInterceptors, Query,} from '@nestjs/common';
 import { HelpService } from './help.service';
 import { CreateHelpDto } from './dto/create-help.dto';
 import { UpdateHelpDto } from './dto/update-help.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { SentryInterceptor } from '../../src/utils/sentry.interceptor';
+import { SentryInterceptor } from '../utils/sentry.interceptor';
+import SearchDto from '../shared/dto/search.dto';
+import HelpDto from './dto/help.dto';
 
 @UseInterceptors(SentryInterceptor)
 @UseGuards(JwtAuthGuard)
 @ApiTags('Help')
-@Controller('help')
+@Controller('api/help')
 export class HelpController {
   constructor(private readonly helpService: HelpService) {}
+
+  @Get()
+  async findAll(@Query() req: SearchDto): Promise<HelpDto[]> {
+    return this.helpService.findAll(req);
+  }
 
   @Post()
   create(@Body() createHelpDto: CreateHelpDto) {
     return this.helpService.create(createHelpDto);
-  }
-
-  @Get()
-  findAll() {
-    return this.helpService.findAll();
   }
 
   @Get(':id')
@@ -28,9 +30,9 @@ export class HelpController {
     return this.helpService.findOne(+id);
   }
 
-  @Put(':id')
-  update(@Param('id') id: string, @Body() updateHelpDto: UpdateHelpDto) {
-    return this.helpService.update(+id, updateHelpDto);
+  @Put()
+  update(@Body() updateHelpDto: UpdateHelpDto) {
+    return this.helpService.update(updateHelpDto);
   }
 
   @Delete(':id')
