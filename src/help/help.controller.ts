@@ -7,36 +7,40 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { SentryInterceptor } from '../utils/sentry.interceptor';
 import SearchDto from '../shared/dto/search.dto';
 import HelpDto from './dto/help.dto';
+import Help from './entities/help.entity';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @UseInterceptors(SentryInterceptor)
 @UseGuards(JwtAuthGuard)
 @ApiTags('Help')
 @Controller('api/help')
 export class HelpController {
-  constructor(private readonly helpService: HelpService) {}
+  constructor(
+    //@InjectRepository(Help)
+    private readonly helpService: HelpService) {}
 
   @Get()
   async findAll(@Query() req: SearchDto): Promise<HelpDto[]> {
-    return this.helpService.findAll(req);
+    return await this.helpService.findAll(req);
   }
 
   @Post()
-  create(@Body() createHelpDto: CreateHelpDto) {
+  create(@Body() createHelpDto: CreateHelpDto): Promise<HelpDto> {
     return this.helpService.create(createHelpDto);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.helpService.findOne(+id);
+  async findOne(@Param('id') id: number): Promise<HelpDto> {
+    return await this.helpService.findOne(id);
   }
 
   @Put()
-  update(@Body() updateHelpDto: UpdateHelpDto) {
-    return this.helpService.update(updateHelpDto);
+  async update(@Body() data: UpdateHelpDto): Promise<HelpDto> {
+    return this.helpService.update(data);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.helpService.remove(+id);
+  async remove(@Param('id') id: number): Promise<void> {
+    await this.helpService.remove(id);
   }
 }
