@@ -36,7 +36,7 @@ export class HelpService {
   }
 
   async update(data: UpdateHelpDto): Promise<HelpDto> {
-  
+    
     const newFile = await this.repository
       .createQueryBuilder()
       .update(Help)
